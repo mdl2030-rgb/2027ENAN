@@ -1,0 +1,14 @@
+services:
+  - type: web
+    name: inan-transaction-statement
+    env: python
+    plan: starter
+    buildCommand: ""
+    startCommand: python transaction_app.py
+    envVars:
+      - key: DATA_DIR
+        value: /var/data
+    disk:
+      name: inan-statement-data
+      mountPath: /var/data
+      sizeGB: 1

@@ -1,0 +1,770 @@
+<!doctype html>
+<html lang="ko">
+<head>
+  <meta charset="utf-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1">
+  <title>거래명세서 - (주)이난</title>
+  <style>
+    :root {
+      --ink: #1f2933;
+      --muted: #667085;
+      --line: #cfd8e3;
+      --soft: #f4f7fb;
+      --accent: #176b87;
+      --accent-dark: #0f4f64;
+      --danger: #b42318;
+      --paper: #ffffff;
+    }
+
+    * {
+      box-sizing: border-box;
+    }
+
+    body {
+      margin: 0;
+      font-family: "Malgun Gothic", "Apple SD Gothic Neo", Arial, sans-serif;
+      color: var(--ink);
+      background: #e8edf3;
+    }
+
+    button,
+    input,
+    textarea,
+    select {
+      font: inherit;
+    }
+
+    .app {
+      min-height: 100vh;
+      padding: 24px;
+    }
+
+    .toolbar {
+      max-width: 1120px;
+      margin: 0 auto 16px;
+      display: flex;
+      align-items: center;
+      justify-content: space-between;
+      gap: 12px;
+    }
+
+    .toolbar h1 {
+      margin: 0;
+      font-size: 22px;
+      font-weight: 800;
+    }
+
+    .actions {
+      display: flex;
+      flex-wrap: wrap;
+      gap: 8px;
+      justify-content: flex-end;
+    }
+
+    .btn {
+      border: 1px solid var(--line);
+      background: var(--paper);
+      color: var(--ink);
+      min-height: 38px;
+      padding: 0 13px;
+      border-radius: 6px;
+      cursor: pointer;
+      font-weight: 700;
+    }
+
+    .btn.primary {
+      background: var(--accent);
+      border-color: var(--accent);
+      color: #fff;
+    }
+
+    .btn.primary:hover {
+      background: var(--accent-dark);
+    }
+
+    .btn.danger {
+      color: var(--danger);
+    }
+
+    .paper {
+      max-width: 1120px;
+      margin: 0 auto;
+      background: var(--paper);
+      border: 1px solid var(--line);
+      box-shadow: 0 16px 38px rgba(31, 41, 51, 0.14);
+      padding: 24px;
+    }
+
+    .doc-head {
+      display: grid;
+      grid-template-columns: 1fr 360px;
+      gap: 18px;
+      align-items: start;
+      margin-bottom: 14px;
+    }
+
+    .title-block {
+      display: grid;
+      gap: 12px;
+    }
+
+    .document-title {
+      text-align: center;
+      font-size: 30px;
+      letter-spacing: 0;
+      font-weight: 900;
+      margin: 4px 0 0;
+    }
+
+    .meta-grid {
+      display: grid;
+      grid-template-columns: 110px 1fr 110px 1fr;
+      border-top: 2px solid var(--ink);
+      border-left: 1px solid var(--line);
+    }
+
+    .meta-grid label,
+    .meta-grid .cell {
+      min-height: 38px;
+      border-right: 1px solid var(--line);
+      border-bottom: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      padding: 6px 8px;
+    }
+
+    .meta-grid label {
+      background: var(--soft);
+      justify-content: center;
+      font-weight: 800;
+    }
+
+    .supplier {
+      border: 2px solid var(--ink);
+      display: grid;
+      grid-template-columns: 84px 1fr;
+    }
+
+    .supplier-title {
+      writing-mode: vertical-rl;
+      text-orientation: mixed;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: var(--soft);
+      font-weight: 900;
+      border-right: 1px solid var(--line);
+      letter-spacing: 4px;
+    }
+
+    .supplier table {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+    }
+
+    .supplier th,
+    .supplier td {
+      border-bottom: 1px solid var(--line);
+      padding: 7px 8px;
+      min-height: 34px;
+      vertical-align: middle;
+      font-size: 14px;
+    }
+
+    .supplier tr:last-child th,
+    .supplier tr:last-child td {
+      border-bottom: 0;
+    }
+
+    .supplier th {
+      width: 82px;
+      background: var(--soft);
+      text-align: center;
+      font-weight: 800;
+    }
+
+    .supplier .company {
+      font-size: 18px;
+      font-weight: 900;
+    }
+
+    .recipient {
+      display: grid;
+      grid-template-columns: 1fr 160px;
+      gap: 12px;
+      align-items: end;
+      margin-bottom: 14px;
+    }
+
+    .recipient-line {
+      display: grid;
+      grid-template-columns: 90px 1fr 44px;
+      gap: 8px;
+      align-items: end;
+    }
+
+    .recipient-line label {
+      font-weight: 900;
+      padding-bottom: 9px;
+    }
+
+    .suffix {
+      padding-bottom: 9px;
+      font-weight: 900;
+      text-align: center;
+    }
+
+    .summary {
+      border: 2px solid var(--ink);
+      padding: 10px 12px;
+      display: flex;
+      justify-content: space-between;
+      gap: 10px;
+      align-items: center;
+      font-weight: 900;
+      background: #f9fbfc;
+    }
+
+    .summary span:last-child {
+      font-size: 18px;
+      color: var(--accent-dark);
+    }
+
+    .items {
+      width: 100%;
+      border-collapse: collapse;
+      table-layout: fixed;
+      border: 2px solid var(--ink);
+      margin-top: 12px;
+    }
+
+    .items th,
+    .items td {
+      border: 1px solid var(--line);
+      padding: 0;
+      height: 38px;
+    }
+
+    .items th {
+      background: var(--soft);
+      font-size: 14px;
+      font-weight: 900;
+      padding: 8px 4px;
+      text-align: center;
+    }
+
+    .items .date {
+      width: 96px;
+    }
+
+    .items .name {
+      width: auto;
+    }
+
+    .items .spec {
+      width: 92px;
+    }
+
+    .items .qty {
+      width: 78px;
+    }
+
+    .items .price,
+    .items .amount {
+      width: 116px;
+    }
+
+    .items .tax {
+      width: 104px;
+    }
+
+    .items .note {
+      width: 130px;
+    }
+
+    .items .remove {
+      width: 46px;
+    }
+
+    .total-row th,
+    .total-row td {
+      background: #fbfcfe;
+      font-weight: 900;
+    }
+
+    input,
+    textarea {
+      width: 100%;
+      border: 0;
+      outline: 0;
+      padding: 8px;
+      background: transparent;
+      color: var(--ink);
+    }
+
+    textarea {
+      resize: vertical;
+      min-height: 72px;
+      border: 1px solid var(--line);
+      border-radius: 6px;
+      background: #fff;
+    }
+
+    .line-input {
+      border-bottom: 2px solid var(--ink);
+      min-height: 40px;
+      font-size: 18px;
+      font-weight: 800;
+    }
+
+    .num {
+      text-align: right;
+    }
+
+    .center {
+      text-align: center;
+    }
+
+    .remove-row {
+      width: 30px;
+      height: 30px;
+      border: 0;
+      border-radius: 5px;
+      color: var(--danger);
+      background: transparent;
+      cursor: pointer;
+      font-weight: 900;
+    }
+
+    .memo-area {
+      display: grid;
+      grid-template-columns: 1fr 310px;
+      gap: 14px;
+      margin-top: 14px;
+      align-items: start;
+    }
+
+    .memo-area label {
+      font-weight: 900;
+      display: block;
+      margin-bottom: 6px;
+    }
+
+    .stamp-box {
+      border: 1px solid var(--line);
+      min-height: 104px;
+      display: grid;
+      grid-template-columns: 1fr 92px;
+      background: #fff;
+    }
+
+    .stamp-text {
+      padding: 12px;
+      line-height: 1.7;
+      font-weight: 800;
+    }
+
+    .stamp {
+      border-left: 1px solid var(--line);
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      color: #9b1c1c;
+      font-weight: 900;
+      font-size: 18px;
+    }
+
+    .print-only {
+      display: none;
+    }
+
+    @media (max-width: 900px) {
+      .app {
+        padding: 12px;
+      }
+
+      .toolbar,
+      .doc-head,
+      .recipient,
+      .memo-area {
+        grid-template-columns: 1fr;
+      }
+
+      .toolbar {
+        align-items: stretch;
+      }
+
+      .actions {
+        justify-content: flex-start;
+      }
+
+      .paper {
+        padding: 14px;
+        overflow-x: auto;
+      }
+
+      .document-title {
+        font-size: 24px;
+      }
+
+      .meta-grid {
+        grid-template-columns: 90px minmax(140px, 1fr);
+      }
+
+      .meta-grid label:nth-of-type(2),
+      .meta-grid label:nth-of-type(3),
+      .meta-grid label:nth-of-type(4) {
+        border-left: 0;
+      }
+
+      .items {
+        min-width: 920px;
+      }
+    }
+
+    @media print {
+      @page {
+        size: A4 portrait;
+        margin: 10mm;
+      }
+
+      body {
+        background: #fff;
+      }
+
+      .app {
+        padding: 0;
+      }
+
+      .toolbar,
+      .remove-row,
+      .remove-col {
+        display: none !important;
+      }
+
+      .paper {
+        max-width: none;
+        margin: 0;
+        border: 0;
+        box-shadow: none;
+        padding: 0;
+      }
+
+      input,
+      textarea {
+        padding: 4px 6px;
+      }
+
+      textarea {
+        border: 0;
+        min-height: 64px;
+      }
+
+      .items th,
+      .items td {
+        height: 31px;
+      }
+
+      .print-only {
+        display: inline;
+      }
+    }
+  </style>
+</head>
+<body>
+  <main class="app">
+    <div class="toolbar">
+      <h1>거래명세서 프로그램</h1>
+      <div class="actions">
+        <button class="btn" id="addRowBtn" type="button">품목 추가</button>
+        <button class="btn" id="saveBtn" type="button">저장</button>
+        <button class="btn" id="loadBtn" type="button">불러오기</button>
+        <button class="btn danger" id="clearBtn" type="button">새 문서</button>
+        <button class="btn primary" id="printBtn" type="button">인쇄 / PDF</button>
+      </div>
+    </div>
+
+    <section class="paper" aria-label="거래명세서">
+      <div class="doc-head">
+        <div class="title-block">
+          <h2 class="document-title">거 래 명 세 서</h2>
+          <div class="meta-grid">
+            <label for="statementDate">작성일자</label>
+            <div class="cell"><input id="statementDate" type="date"></div>
+            <label for="statementNo">문서번호</label>
+            <div class="cell"><input id="statementNo" type="text" placeholder="예: 20260703-001"></div>
+            <label for="paymentType">결제조건</label>
+            <div class="cell"><input id="paymentType" type="text" placeholder="현금 / 카드 / 월말결제"></div>
+            <label for="manager">담당자</label>
+            <div class="cell"><input id="manager" type="text" placeholder="담당자명"></div>
+          </div>
+        </div>
+
+        <aside class="supplier" aria-label="공급자 정보">
+          <div class="supplier-title">공급자</div>
+          <table>
+            <tbody>
+              <tr>
+                <th>등록번호</th>
+                <td>621-81-68878</td>
+              </tr>
+              <tr>
+                <th>상호</th>
+                <td class="company">(주)이난</td>
+              </tr>
+              <tr>
+                <th>대표자</th>
+                <td>오세민</td>
+              </tr>
+              <tr>
+                <th>주소</th>
+                <td>부산시 금정구 체육공원로 368 신천화훼단지</td>
+              </tr>
+              <tr>
+                <th>업태</th>
+                <td>도소매외</td>
+              </tr>
+              <tr>
+                <th>종목</th>
+                <td>생화, 조경수외</td>
+              </tr>
+            </tbody>
+          </table>
+        </aside>
+      </div>
+
+      <div class="recipient">
+        <div class="recipient-line">
+          <label for="customerName">공급받는자</label>
+          <input class="line-input" id="customerName" type="text" placeholder="거래처명">
+          <span class="suffix">귀하</span>
+        </div>
+        <div class="summary">
+          <span>합계금액</span>
+          <span id="grandTotal">0원</span>
+        </div>
+      </div>
+
+      <table class="items" aria-label="품목 명세">
+        <thead>
+          <tr>
+            <th class="date">일자</th>
+            <th class="name">품명</th>
+            <th class="spec">규격</th>
+            <th class="qty">수량</th>
+            <th class="price">단가</th>
+            <th class="amount">공급가액</th>
+            <th class="tax">세액</th>
+            <th class="note">비고</th>
+            <th class="remove remove-col">삭제</th>
+          </tr>
+        </thead>
+        <tbody id="itemBody"></tbody>
+        <tfoot>
+          <tr class="total-row">
+            <th colspan="3">합계</th>
+            <td class="num" id="totalQty">0</td>
+            <td></td>
+            <td class="num" id="subtotal">0</td>
+            <td class="num" id="taxTotal">0</td>
+            <td class="num" id="tableTotal">0</td>
+            <td class="remove-col"></td>
+          </tr>
+        </tfoot>
+      </table>
+
+      <div class="memo-area">
+        <div>
+          <label for="memo">비고</label>
+          <textarea id="memo" placeholder="입금계좌, 배송사항, 기타 전달사항을 입력하세요."></textarea>
+        </div>
+        <div class="stamp-box">
+          <div class="stamp-text">
+            위와 같이 거래하였음을 확인합니다.<br>
+            공급자: (주)이난
+          </div>
+          <div class="stamp">인</div>
+        </div>
+      </div>
+    </section>
+  </main>
+
+  <script>
+    const STORAGE_KEY = "inan-transaction-statement";
+    const itemBody = document.getElementById("itemBody");
+    const fields = [
+      "statementDate",
+      "statementNo",
+      "paymentType",
+      "manager",
+      "customerName",
+      "memo"
+    ];
+
+    function today() {
+      const now = new Date();
+      const tzOffset = now.getTimezoneOffset() * 60000;
+      return new Date(now - tzOffset).toISOString().slice(0, 10);
+    }
+
+    function numberValue(value) {
+      const clean = String(value || "").replace(/[^\d.-]/g, "");
+      const parsed = Number(clean);
+      return Number.isFinite(parsed) ? parsed : 0;
+    }
+
+    function formatNumber(value) {
+      return Math.round(value).toLocaleString("ko-KR");
+    }
+
+    function formatWon(value) {
+      return `${formatNumber(value)}원`;
+    }
+
+    function setDefaultDocumentNumber() {
+      const date = document.getElementById("statementDate").value.replaceAll("-", "");
+      document.getElementById("statementNo").value = `${date}-001`;
+    }
+
+    function createRow(data = {}) {
+      const tr = document.createElement("tr");
+      tr.innerHTML = `
+        <td><input class="center row-date" type="date"></td>
+        <td><input class="row-name" type="text" placeholder="예: 장미"></td>
+        <td><input class="center row-spec" type="text" placeholder="단/분"></td>
+        <td><input class="num row-qty" type="number" min="0" step="1"></td>
+        <td><input class="num row-price" type="text" inputmode="numeric"></td>
+        <td><input class="num row-amount" type="text" readonly></td>
+        <td><input class="num row-tax" type="text" inputmode="numeric"></td>
+        <td><input class="row-note" type="text"></td>
+        <td class="center remove-col"><button class="remove-row" type="button" title="삭제">X</button></td>
+      `;
+
+      tr.querySelector(".row-date").value = data.date || document.getElementById("statementDate").value || today();
+      tr.querySelector(".row-name").value = data.name || "";
+      tr.querySelector(".row-spec").value = data.spec || "";
+      tr.querySelector(".row-qty").value = data.qty || "";
+      tr.querySelector(".row-price").value = data.price ? formatNumber(data.price) : "";
+      tr.querySelector(".row-tax").value = data.tax ? formatNumber(data.tax) : "";
+      tr.querySelector(".row-note").value = data.note || "";
+
+      tr.addEventListener("input", (event) => {
+        if (event.target.classList.contains("row-price") || event.target.classList.contains("row-tax")) {
+          const caret = event.target.selectionStart;
+          const originalLength = event.target.value.length;
+          event.target.value = numberValue(event.target.value) ? formatNumber(numberValue(event.target.value)) : "";
+          const diff = event.target.value.length - originalLength;
+          event.target.setSelectionRange(Math.max(0, caret + diff), Math.max(0, caret + diff));
+        }
+        updateTotals();
+      });
+
+      tr.querySelector(".remove-row").addEventListener("click", () => {
+        if (itemBody.children.length > 1) {
+          tr.remove();
+          updateTotals();
+        }
+      });
+
+      itemBody.appendChild(tr);
+      updateRowAmount(tr);
+      updateTotals();
+    }
+
+    function updateRowAmount(tr) {
+      const qty = numberValue(tr.querySelector(".row-qty").value);
+      const price = numberValue(tr.querySelector(".row-price").value);
+      const amount = qty * price;
+      tr.querySelector(".row-amount").value = amount ? formatNumber(amount) : "";
+      return amount;
+    }
+
+    function updateTotals() {
+      let totalQty = 0;
+      let subtotal = 0;
+      let taxTotal = 0;
+
+      itemBody.querySelectorAll("tr").forEach((tr) => {
+        totalQty += numberValue(tr.querySelector(".row-qty").value);
+        subtotal += updateRowAmount(tr);
+        taxTotal += numberValue(tr.querySelector(".row-tax").value);
+      });
+
+      const grand = subtotal + taxTotal;
+      document.getElementById("totalQty").textContent = formatNumber(totalQty);
+      document.getElementById("subtotal").textContent = formatNumber(subtotal);
+      document.getElementById("taxTotal").textContent = formatNumber(taxTotal);
+      document.getElementById("tableTotal").textContent = formatNumber(grand);
+      document.getElementById("grandTotal").textContent = formatWon(grand);
+    }
+
+    function collectData() {
+      return {
+        fields: Object.fromEntries(fields.map((id) => [id, document.getElementById(id).value])),
+        items: [...itemBody.querySelectorAll("tr")].map((tr) => ({
+          date: tr.querySelector(".row-date").value,
+          name: tr.querySelector(".row-name").value,
+          spec: tr.querySelector(".row-spec").value,
+          qty: numberValue(tr.querySelector(".row-qty").value),
+          price: numberValue(tr.querySelector(".row-price").value),
+          tax: numberValue(tr.querySelector(".row-tax").value),
+          note: tr.querySelector(".row-note").value
+        }))
+      };
+    }
+
+    function loadData(data) {
+      if (!data) return;
+      fields.forEach((id) => {
+        if (data.fields && data.fields[id] !== undefined) {
+          document.getElementById(id).value = data.fields[id];
+        }
+      });
+      itemBody.innerHTML = "";
+      (data.items && data.items.length ? data.items : [{}]).forEach(createRow);
+      updateTotals();
+    }
+
+    function clearDocument() {
+      fields.forEach((id) => {
+        document.getElementById(id).value = "";
+      });
+      document.getElementById("statementDate").value = today();
+      setDefaultDocumentNumber();
+      itemBody.innerHTML = "";
+      for (let i = 0; i < 8; i += 1) createRow();
+      updateTotals();
+    }
+
+    document.getElementById("addRowBtn").addEventListener("click", () => createRow());
+    document.getElementById("printBtn").addEventListener("click", () => window.print());
+    document.getElementById("saveBtn").addEventListener("click", () => {
+      localStorage.setItem(STORAGE_KEY, JSON.stringify(collectData()));
+      alert("현재 거래명세서를 이 브라우저에 저장했습니다.");
+    });
+    document.getElementById("loadBtn").addEventListener("click", () => {
+      const raw = localStorage.getItem(STORAGE_KEY);
+      if (!raw) {
+        alert("저장된 거래명세서가 없습니다.");
+        return;
+      }
+      loadData(JSON.parse(raw));
+    });
+    document.getElementById("clearBtn").addEventListener("click", () => {
+      if (confirm("입력 내용을 지우고 새 거래명세서를 작성할까요?")) {
+        clearDocument();
+      }
+    });
+    document.getElementById("statementDate").addEventListener("change", () => {
+      if (!document.getElementById("statementNo").value) setDefaultDocumentNumber();
+    });
+
+    fields.forEach((id) => document.getElementById(id).addEventListener("input", updateTotals));
+
+    document.getElementById("statementDate").value = today();
+    setDefaultDocumentNumber();
+    for (let i = 0; i < 8; i += 1) createRow();
+  </script>
+</body>
+</html>
