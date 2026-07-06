@@ -11,7 +11,7 @@ from urllib.parse import unquote, urlparse
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
-SEAL_PATH = STATIC_DIR / "seal.gif"
+SEAL_PATH = STATIC_DIR / "seal.png"
 DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR))
 try:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -203,7 +203,7 @@ def statement_body(data, rows, totals):
     </table>
     <section class="bottom">
       <div><strong>비고</strong><div class="memo">{safe_text(data.get('memo'))}</div></div>
-      <div class="seal-area">위와 같이 거래하였음을 확인합니다.<br>공급자: {COMPANY['name']}<img class="seal" src="/static/seal.gif?v=3" alt="법인인감"></div>
+      <div class="seal-area">위와 같이 거래하였음을 확인합니다.<br>공급자: {COMPANY['name']}<img class="seal" src="/static/seal.png?v=4" alt="법인인감"></div>
     </section>
   </main>"""
 
@@ -291,7 +291,7 @@ const APP_SHELL = [
   "/",
   "/manifest.webmanifest",
   "/static/icon.svg",
-  "/static/seal.gif"
+  "/static/seal.png?v=4"
 ];
 
 self.addEventListener("install", (event) => {
@@ -479,7 +479,7 @@ def render_app():
         </table>
         <section class="bottom">
           <div><strong>비고</strong><textarea id="memo" placeholder="입금계좌, 배송사항, 기타 전달사항"></textarea></div>
-          <div class="seal-area">위와 같이 거래하였음을 확인합니다.<br>공급자: {COMPANY['name']}<img class="seal" src="/static/seal.gif?v=3" alt="법인인감"></div>
+          <div class="seal-area">위와 같이 거래하였음을 확인합니다.<br>공급자: {COMPANY['name']}<img class="seal" src="/static/seal.png?v=4" alt="법인인감"></div>
         </section>
       </div>
     </section>
