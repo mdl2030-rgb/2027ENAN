@@ -11,6 +11,7 @@ from urllib.parse import unquote, urlparse
 
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
+SEAL_PATH = STATIC_DIR / "seal.gif"
 DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR))
 try:
     DATA_DIR.mkdir(parents=True, exist_ok=True)
@@ -202,7 +203,7 @@ def statement_body(data, rows, totals):
     </table>
     <section class="bottom">
       <div><strong>비고</strong><div class="memo">{safe_text(data.get('memo'))}</div></div>
-      <div class="seal-area">위와 같이 거래하였음을 확인합니다.<br>공급자: {COMPANY['name']}<img class="seal" src="/static/seal.gif" alt="법인인감"></div>
+      <div class="seal-area">위와 같이 거래하였음을 확인합니다.<br>공급자: {COMPANY['name']}<img class="seal" src="/static/seal.gif?v=3" alt="법인인감"></div>
     </section>
   </main>"""
 
@@ -478,7 +479,7 @@ def render_app():
         </table>
         <section class="bottom">
           <div><strong>비고</strong><textarea id="memo" placeholder="입금계좌, 배송사항, 기타 전달사항"></textarea></div>
-          <div class="seal-area">위와 같이 거래하였음을 확인합니다.<br>공급자: {COMPANY['name']}<img class="seal" src="/static/seal.gif" alt="법인인감"></div>
+          <div class="seal-area">위와 같이 거래하였음을 확인합니다.<br>공급자: {COMPANY['name']}<img class="seal" src="/static/seal.gif?v=3" alt="법인인감"></div>
         </section>
       </div>
     </section>
@@ -807,7 +808,14 @@ class Handler(BaseHTTPRequestHandler):
             if STATIC_DIR.resolve() not in asset.parents or not asset.exists():
                 self.send(404, "파일을 찾을 수 없습니다.")
                 return
-            content_type = "image/gif" if asset.suffix.lower() == ".gif" else "application/octet-stream"
+            content_types = {
+                ".gif": "image/gif",
+                ".svg": "image/svg+xml",
+                ".png": "image/png",
+                ".jpg": "image/jpeg",
+                ".jpeg": "image/jpeg",
+            }
+            content_type = content_types.get(asset.suffix.lower(), "application/octet-stream")
             self.send(200, asset.read_bytes(), content_type)
             return
         self.send(404, "페이지를 찾을 수 없습니다.")
