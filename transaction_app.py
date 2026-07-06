@@ -12,7 +12,11 @@ from urllib.parse import unquote, urlparse
 BASE_DIR = Path(__file__).resolve().parent
 STATIC_DIR = BASE_DIR / "static"
 DATA_DIR = Path(os.environ.get("DATA_DIR", BASE_DIR))
-DATA_DIR.mkdir(parents=True, exist_ok=True)
+try:
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
+except PermissionError:
+    DATA_DIR = BASE_DIR / "data"
+    DATA_DIR.mkdir(parents=True, exist_ok=True)
 DB_PATH = DATA_DIR / "transaction_statements.db"
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("PORT", "8765"))
