@@ -31,8 +31,19 @@ DOCUMENT_TYPES = {
     "statement": "산출내역서",
 }
 
+CONFIRMATION_TEXTS = {
+    "transaction": "위와 같이 거래하였음을 확인합니다.",
+    "estimate": "위와 같이 견적합니다.",
+    "invoice": "위와 같이 청구합니다.",
+    "delivery": "위와 같이 납품하였음을 확인합니다.",
+    "statement": "이와 같이 산출함을 확인합니다.",
+}
+
 def document_label(data):
     return DOCUMENT_TYPES.get((data or {}).get("docType") or "transaction", "거래명세서")
+
+def confirmation_text(data):
+    return CONFIRMATION_TEXTS.get((data or {}).get("docType") or "transaction", CONFIRMATION_TEXTS["transaction"])
 
 def spaced_title(label):
     return " ".join(label)
@@ -219,7 +230,7 @@ def statement_body(data, rows, totals):
     </table>
     <section class="bottom">
       <div><strong>비고</strong><div class="memo">{safe_text(data.get('memo'))}</div></div>
-      <div class="seal-area">위와 같이 거래하였음을 확인합니다.<br>공급자: {COMPANY['name']}<img class="seal" src="{SEAL_DATA_URI}" alt="법인인감"></div>
+      <div class="seal-area">{safe_text(confirmation_text(data))}<br>공급자: {COMPANY['name']}<img class="seal" src="{SEAL_DATA_URI}" alt="법인인감"></div>
     </section>
   </main>"""
 
@@ -508,7 +519,7 @@ def render_app():
         </table>
         <section class="bottom">
           <div><strong>비고</strong><textarea id="memo" placeholder="입금계좌, 배송사항, 기타 전달사항"></textarea></div>
-          <div class="seal-area">위와 같이 거래하였음을 확인합니다.<br>공급자: {COMPANY['name']}<img class="seal" src="{SEAL_DATA_URI}" alt="법인인감"></div>
+          <div class="seal-area"><span id="confirmationText">위와 같이 거래하였음을 확인합니다.</span><br>공급자: {COMPANY['name']}<img class="seal" src="{SEAL_DATA_URI}" alt="법인인감"></div>
         </section>
       </div>
     </section>
@@ -545,6 +556,13 @@ def render_app():
     const itemBody = document.getElementById("itemBody");
     const ids = ["docType", "statementDate", "statementNo", "paymentType", "manager", "customerPhone", "customerName", "memo"];
     const docTypeLabels = {{ transaction: "거래명세서", estimate: "견적서", invoice: "청구서", delivery: "납품서", statement: "산출내역서" }};
+    const confirmationTexts = {{
+      transaction: "위와 같이 거래하였음을 확인합니다.",
+      estimate: "위와 같이 견적합니다.",
+      invoice: "위와 같이 청구합니다.",
+      delivery: "위와 같이 납품하였음을 확인합니다.",
+      statement: "이와 같이 산출함을 확인합니다."
+    }};
     let currentStatementId = null;
     let autoSaveTimer = null;
     const n = (v) => Number(String(v || "").replace(/[^\\d.-]/g, "")) || 0;
@@ -554,8 +572,9 @@ def render_app():
     function row(data = {{}}) {{
       const tr = document.createElement("tr");
       tr.innerHTML = `<td data-label="일자"><input class="center date" type="date"></td><td data-label="품명"><input class="name"></td><td data-label="규격"><input class="center spec"></td><td data-label="수량"><input class="num qty" type="number" min="0"></td><td data-label="단가"><input class="num price" inputmode="numeric"></td><td data-label="공급가액"><input class="num amount" readonly></td><td data-label="세액"><input class="num tax" inputmode="numeric"></td><td data-label="비고"><input class="note"></td><td data-label="삭제" class="center remove-col"><button class="remove" type="button">X</button></td>`;
-      tr.querySelector(".date").value = data.date || document.getElementById("statementDate").value || today();
-      tr.querySelector(".name").value = data.name || "";
+      const itemName = data.name || "";
+      tr.querySelector(".name").value = itemName;
+      tr.querySelector(".date").value = itemName ? (data.date || document.getElementById("statementDate").value || today()) : "";
       tr.querySelector(".spec").value = data.spec || "";
       tr.querySelector(".qty").value = data.qty || "";
       tr.querySelector(".price").value = data.price ? fmt(data.price) : "";
@@ -567,9 +586,24 @@ def render_app():
       updateTotals();
     }}
 
+    function syncRowDate(tr) {{
+      const dateInput = tr.querySelector(".date");
+      const nameInput = tr.querySelector(".name");
+      if (!dateInput || !nameInput) return;
+      if (!nameInput.value.trim()) {{
+        if (dateInput.value) dateInput.dataset.savedDate = dateInput.value;
+        dateInput.value = "";
+        return;
+      }}
+      if (!dateInput.value) {{
+        dateInput.value = dateInput.dataset.savedDate || document.getElementById("statementDate").value || today();
+      }}
+    }}
+
     function updateTotals() {{
       let qty = 0, subtotal = 0, tax = 0;
       itemBody.querySelectorAll("tr").forEach((tr) => {{
+        syncRowDate(tr);
         const q = n(tr.querySelector(".qty").value);
         const p = n(tr.querySelector(".price").value);
         const t = n(tr.querySelector(".tax").value);
@@ -587,6 +621,7 @@ def render_app():
     function updateDocumentTitle() {{
       const label = docTypeLabels[document.getElementById("docType").value] || "거래명세서";
       document.getElementById("docTitle").textContent = [...label].join(" ");
+      document.getElementById("confirmationText").textContent = confirmationTexts[document.getElementById("docType").value] || confirmationTexts.transaction;
     }}
 
     function collect() {{
