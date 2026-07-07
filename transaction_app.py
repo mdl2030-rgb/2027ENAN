@@ -23,6 +23,21 @@ DB_PATH = DATA_DIR / "transaction_statements.db"
 HOST = "0.0.0.0"
 PORT = int(os.environ.get("PORT", "8765"))
 
+DOCUMENT_TYPES = {
+    "transaction": "거래명세서",
+    "estimate": "견적서",
+    "invoice": "청구서",
+    "delivery": "납품서",
+    "statement": "산출내역서",
+}
+
+def document_label(data):
+    return DOCUMENT_TYPES.get((data or {}).get("docType") or "transaction", "거래명세서")
+
+def spaced_title(label):
+    return " ".join(label)
+
+
 COMPANY = {
     "name": "(주)이난",
     "business_no": "621-81-68878",
@@ -98,7 +113,7 @@ def calc_totals(items):
 def kakao_message(data, statement_id=None):
     totals = calc_totals(data.get("items") or [])
     lines = [
-        f"{COMPANY['name']} 거래명세서",
+        f"{COMPANY['name']} {document_label(data)}",
         f"작성일자: {data.get('statementDate', '')}",
         f"문서번호: {data.get('statementNo', '')}",
         f"거래처: {data.get('customerName', '')}",
@@ -159,7 +174,7 @@ def statement_html(data, statement_id=None, toolbar=False, standalone=False):
 <head>
   <meta charset="utf-8">
   <meta name="viewport" content="width=device-width, initial-scale=1">
-  <title>거래명세서 {safe_text(data.get('statementNo'))}</title>
+  <title>{safe_text(document_label(data))} {safe_text(data.get('statementNo'))}</title>
   <style>{common_css()}</style>
 </head>
 <body>
@@ -178,7 +193,7 @@ def statement_html(data, statement_id=None, toolbar=False, standalone=False):
 def statement_body(data, rows, totals):
     return f"""
   <main class="paper">
-    <h1 class="doc-title">거 래 명 세 서</h1>
+    <h1 class="doc-title">{safe_text(spaced_title(document_label(data)))}</h1>
     <section class="head-grid">
       <table class="meta">
         <tr><th>작성일자</th><td>{safe_text(data.get('statementDate'))}</td><th>문서번호</th><td>{safe_text(data.get('statementNo'))}</td></tr>
@@ -353,8 +368,11 @@ def render_app():
     button.danger {{ color: #b42318; }}
     .page, .kakao-page {{ display: none; }}
     .page.active, .kakao-page.active {{ display: block; }}
-    input, textarea {{ width: 100%; border: 0; outline: 0; padding: 7px; font: inherit; background: transparent; }}
+    input, textarea, select {{ width: 100%; border: 0; outline: 0; padding: 7px; font: inherit; background: transparent; }}
     textarea {{ resize: vertical; border: 1px solid #cfd8e3; border-radius: 6px; background: #fff; }}
+    .doc-type-row {{ display: grid; grid-template-columns: 92px 1fr; border-top: 2px solid #1f2933; border-left: 1px solid #cfd8e3; margin-bottom: 8px; }}
+    .doc-type-row label, .doc-type-row select {{ border-right: 1px solid #cfd8e3; border-bottom: 1px solid #cfd8e3; min-height: 34px; display: flex; align-items: center; }}
+    .doc-type-row label {{ justify-content: center; background: #f4f7fb; font-weight: 900; font-size: 13px; }}
     .edit-grid {{ display: grid; grid-template-columns: 92px 1fr 92px 1fr; border-top: 2px solid #1f2933; border-left: 1px solid #cfd8e3; }}
     .cell, .field {{ border-right: 1px solid #cfd8e3; border-bottom: 1px solid #cfd8e3; min-height: 34px; display: flex; align-items: center; }}
     .cell {{ justify-content: center; background: #f4f7fb; font-weight: 900; font-size: 13px; }}
@@ -453,7 +471,17 @@ def render_app():
 
     <section class="page active" id="statementPage">
       <div class="paper">
-        <h2 class="doc-title">거 래 명 세 서</h2>
+        <h2 class="doc-title" id="docTitle">거 래 명 세 서</h2>
+        <div class="doc-type-row">
+          <label for="docType">문서종류</label>
+          <select id="docType">
+            <option value="transaction">거래명세서</option>
+            <option value="estimate">견적서</option>
+            <option value="invoice">청구서</option>
+            <option value="delivery">납품서</option>
+            <option value="statement">산출내역서</option>
+          </select>
+        </div>
         <div class="edit-grid">
           <label class="cell">작성일자</label><div class="field"><input id="statementDate" type="date" value="{today}"></div>
           <label class="cell">문서번호</label><div class="field"><input id="statementNo" value="{statement_no}"></div>
@@ -515,7 +543,8 @@ def render_app():
 
   <script>
     const itemBody = document.getElementById("itemBody");
-    const ids = ["statementDate", "statementNo", "paymentType", "manager", "customerPhone", "customerName", "memo"];
+    const ids = ["docType", "statementDate", "statementNo", "paymentType", "manager", "customerPhone", "customerName", "memo"];
+    const docTypeLabels = {{ transaction: "거래명세서", estimate: "견적서", invoice: "청구서", delivery: "납품서", statement: "산출내역서" }};
     let currentStatementId = null;
     let autoSaveTimer = null;
     const n = (v) => Number(String(v || "").replace(/[^\\d.-]/g, "")) || 0;
@@ -555,6 +584,11 @@ def render_app():
       document.getElementById("grandTotal").textContent = fmt(subtotal + tax) + "원";
     }}
 
+    function updateDocumentTitle() {{
+      const label = docTypeLabels[document.getElementById("docType").value] || "거래명세서";
+      document.getElementById("docTitle").textContent = [...label].join(" ");
+    }}
+
     function collect() {{
       const data = Object.fromEntries(ids.map((id) => [id, document.getElementById(id).value]));
       data.items = [...itemBody.querySelectorAll("tr")].map((tr) => ({{
@@ -570,7 +604,8 @@ def render_app():
     }}
 
     function fill(data) {{
-      ids.forEach((id) => document.getElementById(id).value = data[id] || "");
+      ids.forEach((id) => document.getElementById(id).value = data[id] || (id === "docType" ? "transaction" : ""));
+      updateDocumentTitle();
       itemBody.innerHTML = "";
       (data.items && data.items.length ? data.items : [{{}}]).forEach(row);
       while (itemBody.children.length < 8) row();
@@ -654,7 +689,7 @@ def render_app():
     async function loadSaved() {{
       const res = await fetch("/api/statements");
       const list = await res.json();
-      document.getElementById("savedList").innerHTML = list.map((item) => `<div class="saved-item"><strong>${{item.statement_no || "문서번호 없음"}}</strong><span>${{item.customer_name || "거래처 없음"}} · ${{item.updated_at || item.created_at}}</span><button type="button" data-edit="${{item.id}}">불러와 수정</button><a href="/statement/${{item.id}}" target="_blank">보기 / 인쇄</a></div>`).join("");
+      document.getElementById("savedList").innerHTML = list.map((item) => `<div class="saved-item"><strong>${{item.doc_type || "거래명세서"}} · ${{item.statement_no || "문서번호 없음"}}</strong><span>${{item.customer_name || "거래처 없음"}} · ${{item.updated_at || item.created_at}}</span><button type="button" data-edit="${{item.id}}">불러와 수정</button><a href="/statement/${{item.id}}" target="_blank">보기 / 인쇄</a></div>`).join("");
     }}
 
     function clearDoc() {{
@@ -662,6 +697,8 @@ def render_app():
       currentStatementId = null;
       document.getElementById("statementDate").value = today();
       document.getElementById("statementNo").value = today().replaceAll("-", "") + "-001";
+      document.getElementById("docType").value = "transaction";
+      updateDocumentTitle();
       document.getElementById("sendStatus").value = "작성중";
       itemBody.innerHTML = "";
       for (let i = 0; i < 8; i += 1) row();
@@ -706,9 +743,11 @@ def render_app():
     document.getElementById("statementTab").addEventListener("click", () => showPage("statement"));
     document.getElementById("kakaoTab").addEventListener("click", () => showPage("kakao"));
     document.getElementById("statementPage").addEventListener("input", scheduleAutoSave);
+    document.getElementById("docType").addEventListener("change", () => {{ updateDocumentTitle(); scheduleAutoSave(); }});
     document.getElementById("clear").addEventListener("click", () => {{ if (confirm("새 문서를 작성할까요?")) clearDoc(); }});
     window.addEventListener("beforeprint", compactPrintDates);
     window.addEventListener("afterprint", restorePrintDates);
+    updateDocumentTitle();
     for (let i = 0; i < 8; i += 1) row();
     loadSaved();
 
@@ -754,9 +793,17 @@ class Handler(BaseHTTPRequestHandler):
         if path == "/api/statements":
             with db() as conn:
                 rows = conn.execute(
-                    "SELECT id, statement_no, customer_name, customer_phone, created_at, updated_at FROM statements ORDER BY id DESC LIMIT 30"
+                    "SELECT id, statement_no, customer_name, customer_phone, data, created_at, updated_at FROM statements ORDER BY id DESC LIMIT 30"
                 ).fetchall()
-            self.send(200, json.dumps([dict(row) for row in rows], ensure_ascii=False), "application/json; charset=utf-8")
+            items = []
+            for row in rows:
+                item = dict(row)
+                try:
+                    item["doc_type"] = document_label(json.loads(row["data"]))
+                except Exception:
+                    item["doc_type"] = "거래명세서"
+                items.append(item)
+            self.send(200, json.dumps(items, ensure_ascii=False), "application/json; charset=utf-8")
             return
         if path.startswith("/api/statements/"):
             statement_id = path.rsplit("/", 1)[-1]
