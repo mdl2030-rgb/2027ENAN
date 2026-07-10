@@ -152,10 +152,11 @@ def statement_html(data, statement_id=None, toolbar=False, standalone=False):
     rows = []
     for item in items:
         amount = float(item.get("qty") or 0) * float(item.get("price") or 0)
+        item_date = short_date(item.get("date")) if item.get("name") else ""
         rows.append(
             f"""
             <tr>
-              <td>{safe_text(short_date(item.get('date')))}</td>
+              <td>{safe_text(item_date)}</td>
               <td>{safe_text(item.get('name'))}</td>
               <td>{safe_text(item.get('spec'))}</td>
               <td class="num">{money(item.get('qty'))}</td>
@@ -724,7 +725,20 @@ def render_app():
     async function loadSaved() {{
       const res = await fetch("/api/statements");
       const list = await res.json();
-      document.getElementById("savedList").innerHTML = list.map((item) => `<div class="saved-item"><strong>${{item.doc_type || "거래명세서"}} · ${{item.statement_no || "문서번호 없음"}}</strong><span>${{item.customer_name || "거래처 없음"}} · ${{item.updated_at || item.created_at}}</span><button type="button" data-edit="${{item.id}}">불러와 수정</button><a href="/statement/${{item.id}}" target="_blank">보기 / 인쇄</a></div>`).join("");
+      document.getElementById("savedList").innerHTML = list.map((item) => `<div class="saved-item"><strong>${{item.doc_type || "거래명세서"}} · ${{item.statement_no || "문서번호 없음"}}</strong><span>${{item.customer_name || "거래처 없음"}} · ${{item.updated_at || item.created_at}}</span><button type="button" data-edit="${{item.id}}">불러와 수정</button><a href="/statement/${{item.id}}" target="_blank">보기 / 인쇄</a><button class="danger" type="button" data-delete="${{item.id}}">삭제</button></div>`).join("");
+    }}
+
+    async function deleteStatement(id) {{
+      if (!confirm("저장된 문서를 삭제할까요? 삭제 후에는 되돌릴 수 없습니다.")) return;
+      const res = await fetch(`/api/statements/${{id}}`, {{ method: "DELETE" }});
+      if (!res.ok) {{
+        alert("삭제하지 못했습니다. 잠시 후 다시 시도해 주세요.");
+        return;
+      }}
+      if (String(currentStatementId) === String(id)) {{
+        clearDoc();
+      }}
+      await loadSaved();
     }}
 
     function clearDoc() {{
@@ -772,6 +786,11 @@ def render_app():
     document.getElementById("mobileSave").addEventListener("click", save);
     document.getElementById("mobileShare").addEventListener("click", nativeShare);
     document.getElementById("savedList").addEventListener("click", (event) => {{
+      const deleteButton = event.target.closest("[data-delete]");
+      if (deleteButton) {{
+        deleteStatement(deleteButton.dataset.delete);
+        return;
+      }}
       const button = event.target.closest("[data-edit]");
       if (button) loadStatement(button.dataset.edit);
     }});
@@ -979,6 +998,19 @@ class Handler(BaseHTTPRequestHandler):
             ),
             "application/json; charset=utf-8",
         )
+
+    def do_DELETE(self):
+        parsed = urlparse(self.path)
+        if not parsed.path.startswith("/api/statements/"):
+            self.send(404, "페이지를 찾을 수 없습니다.")
+            return
+        statement_id = parsed.path.rsplit("/", 1)[-1]
+        with db() as conn:
+            cur = conn.execute("DELETE FROM statements WHERE id = ?", (statement_id,))
+        if cur.rowcount == 0:
+            self.send(404, json.dumps({"error": "저장된 문서를 찾을 수 없습니다."}, ensure_ascii=False), "application/json; charset=utf-8")
+            return
+        self.send(200, json.dumps({"ok": True, "id": int(statement_id)}, ensure_ascii=False), "application/json; charset=utf-8")
 
     def log_message(self, fmt, *args):
         return
